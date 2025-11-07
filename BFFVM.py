@@ -7,7 +7,7 @@ class VM:
         self.ip = 0
         self.h0 = 0
         self.h1 = 0
-        
+        self.seam = 0
 
         # ops & dispatch
         self.OPS = "<>{}-+.,[]_|"
@@ -23,16 +23,17 @@ class VM:
             ord(','): self.op_copy_h1_to_h0,
             ord('['): self.op_jump_fwd_if_zero,
             ord(']'): self.op_jump_back_if_nonzero,
-            ord('_'): self.op_delete_at_h1,
-            ord('|'): self.op_insert_zero_at_h1,
+            #ord('_'): self.op_delete_at_h1,
+            #ord('|'): self.op_insert_zero_at_h1,
         }
         
-    def run_program(self, program): #program is a list of ints
+    def run_program(self, program, budget=None): #program is a list of ints
         self.tape = program
         self.ip = 0
         self.h0 = 0
         self.h1 = 0
         self.running = True
+        steps = 0
 
 
         while self.running and 0 <= self.ip < len(self.tape):
@@ -42,7 +43,18 @@ class VM:
             op()
             if not self.running:
                 break
+            steps += 1
+            if budget is not None and steps >= budget:
+                self.running = False; break
             if not self.jumped: self.ip += 1
+        return
+    
+    def run_pair(self, A, B, budget=None):
+        self.seam = len(A)
+        self.run_program(list(A) + list(B), budget=budget)
+        if self.seam < 0: self.seam = 0
+        if self.seam > len(self.tape): self.seam = len(self.tape)
+        return self.tape[:self.seam], self.tape[self.seam:]
             
     # ---- ops (stubs; fill in later) ----
     def nop(self): pass
@@ -72,6 +84,7 @@ class VM:
     def op_delete_at_h1(self):
         if 0 <= self.h1 < len(self.tape):
             del self.tape[self.h1]
+            if self.h1 < self.seam: self.seam = max(0, self.seam - 1)
             if self.ip >= self.h1:  # preserve logical next instruction
                 self.ip -= 1
             if self.h0 >= len(self.tape): self.h0 = len(self.tape) - 1
@@ -82,6 +95,7 @@ class VM:
         pos = max(self.h1, 0)
         if pos > len(self.tape): self.tape.extend([0] * (pos - len(self.tape)))
         self.tape.insert(pos, 0)
+        if pos < self.seam: self.seam += 1
         if self.ip >= pos:       # preserve logical next instruction
             self.ip += 1
     
