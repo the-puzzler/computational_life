@@ -19,7 +19,7 @@ def compress_ratio(data_bytes: bytes) -> float:
 #%% Initialize soup (adjust sizes as desired)
 num_programs = 50_000
 budget = 2**13
-pair_prop = 1.0
+pair_prop = 0.2
 soup = PrimordialSoup(num_programs, budget=budget, pair_prop=pair_prop)
 
 

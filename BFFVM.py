@@ -1,4 +1,25 @@
+"""
+instuction pointer is a seperate head.
+head0 is read
+head1 is write head
 
+
+< head0 = head0 - 1
+> head0 = head0 + 1
+{ head1 = head1 - 1
+} head1 = head1 + 1
+- tape[head0] = tape[head0] - 1
++ tape[head0] = tape[head0] + 1
+. tape[head1] = tape[head0]
+, tape[head0] = tape[head1]
+[ if (tape[head0] == 0): jump forwards to matching ] command.
+] if (tape[head0] != 0): jump backwards to matching [ command.    
+
+my additions:
+_ deletion tape[head1] (next position slides under the pointer if it exists)
+| insertion tape[head1] (inserts so that the current element at pointer becomes the next element.)
+
+"""
 
 class VM:
     def __init__(self):
