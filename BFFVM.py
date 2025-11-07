@@ -13,11 +13,12 @@ head1 is write head
 . tape[head1] = tape[head0]
 , tape[head0] = tape[head1]
 [ if (tape[head0] == 0): jump forwards to matching ] command.
-] if (tape[head0] != 0): jump backwards to matching [ command.    
-
-my additions:
-_ deletion tape[head1] (next position slides under the pointer if it exists)
-| insertion tape[head1] (inserts so that the current element at pointer becomes the next element.)
+] if (tape[head0] != 0): jump backwards to matching [ command.
+_ split at head1 (left kept, right spawned)
+| insert value at head1 from head0 (shift right)
+: insert value at head0 from head1 (shift right)
+\\ delete at head1 (slide left)
+/ delete at head0 (slide left)
 
 """
 
@@ -29,9 +30,10 @@ class VM:
         self.h0 = 0
         self.h1 = 0
         self.seam = 0
+        self.spawned = []
 
         # ops & dispatch
-        self.OPS = "<>{}-+.,[]_|"
+        self.OPS = "<>{}-+.,[]_|:/\\"
         self.OPCODES = {ord(c): c for c in self.OPS}
         self.dispatch = {
             ord('<'): self.op_left_h0,
@@ -44,8 +46,11 @@ class VM:
             ord(','): self.op_copy_h1_to_h0,
             ord('['): self.op_jump_fwd_if_zero,
             ord(']'): self.op_jump_back_if_nonzero,
-            #ord('_'): self.op_delete_at_h1,
-            #ord('|'): self.op_insert_zero_at_h1,
+            ord('_'): self.op_split_at_h1,
+            ord('|'): self.op_insert_h0_at_h1,
+            ord(':'): self.op_insert_h1_at_h0,
+            ord('/') : self.op_delete_at_h0,
+            ord('\\'): self.op_delete_at_h1,
         }
         
     def run_program(self, program, budget=None): #program is a list of ints
@@ -54,6 +59,7 @@ class VM:
         self.h0 = 0
         self.h1 = 0
         self.running = True
+        self.spawned = []
         steps = 0
 
 
@@ -68,14 +74,8 @@ class VM:
             if budget is not None and steps >= budget:
                 self.running = False; break
             if not self.jumped: self.ip += 1
-        return
+        return self.tape, self.spawned
     
-    def run_pair(self, A, B, budget=None):
-        self.seam = len(A)
-        self.run_program(list(A) + list(B), budget=budget)
-        if self.seam < 0: self.seam = 0
-        if self.seam > len(self.tape): self.seam = len(self.tape)
-        return self.tape[:self.seam], self.tape[self.seam:]
             
     # ---- ops (stubs; fill in later) ----
     def nop(self): pass
@@ -102,23 +102,52 @@ class VM:
             self.ip = j
             self.jumped = True
 
-    def op_delete_at_h1(self):
-        if 0 <= self.h1 < len(self.tape):
-            del self.tape[self.h1]
-            if self.h1 < self.seam: self.seam = max(0, self.seam - 1)
-            if self.ip >= self.h1:  # preserve logical next instruction
-                self.ip -= 1
-            if self.h0 >= len(self.tape): self.h0 = len(self.tape) - 1
-            if self.h1 >= len(self.tape): self.h1 = len(self.tape) - 1
-            if not self.tape: self.running = False  # empty → halt
+    def op_split_at_h1(self):
+        pos = self.h1
+        if 0 <= pos <= len(self.tape):
+            right = self.tape[pos:]
+            left = self.tape[:pos]
+            self.tape = left
+            self.spawned.append(right)
+            if self.h0 >= len(self.tape): self.h0 = max(len(self.tape) - 1, 0)
+            if self.h1 > len(self.tape): self.h1 = len(self.tape)
+            self.running = False
 
-    def op_insert_zero_at_h1(self):
+    def op_insert_h0_at_h1(self):
         pos = max(self.h1, 0)
         if pos > len(self.tape): self.tape.extend([0] * (pos - len(self.tape)))
-        self.tape.insert(pos, 0)
+        val = self.tape[self.h0] if 0 <= self.h0 < len(self.tape) else 0
+        self.tape.insert(pos, val)
         if pos < self.seam: self.seam += 1
-        if self.ip >= pos:       # preserve logical next instruction
-            self.ip += 1
+        if self.ip >= pos: self.ip += 1
+
+    def op_insert_h1_at_h0(self):
+        pos = max(self.h0, 0)
+        if pos > len(self.tape): self.tape.extend([0] * (pos - len(self.tape)))
+        val = self.tape[self.h1] if 0 <= self.h1 < len(self.tape) else 0
+        self.tape.insert(pos, val)
+        if pos < self.seam: self.seam += 1
+        if self.ip >= pos: self.ip += 1
+
+    def op_delete_at_h0(self):
+        pos = self.h0
+        if 0 <= pos < len(self.tape):
+            del self.tape[pos]
+            if pos < self.seam: self.seam = max(0, self.seam - 1)
+            if self.ip >= pos: self.ip -= 1
+            if self.h0 >= len(self.tape): self.h0 = max(len(self.tape) - 1, 0)
+            if self.h1 >= len(self.tape): self.h1 = max(len(self.tape) - 1, 0)
+            if not self.tape: self.running = False
+
+    def op_delete_at_h1(self):
+        pos = self.h1
+        if 0 <= pos < len(self.tape):
+            del self.tape[pos]
+            if pos < self.seam: self.seam = max(0, self.seam - 1)
+            if self.ip >= pos: self.ip -= 1
+            if self.h0 >= len(self.tape): self.h0 = max(len(self.tape) - 1, 0)
+            if self.h1 >= len(self.tape): self.h1 = max(len(self.tape) - 1, 0)
+            if not self.tape: self.running = False
     
     def find_matching_forward(self, pos):
         depth = 1
