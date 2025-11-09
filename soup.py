@@ -21,14 +21,14 @@ class PrimordialSoup():
         self.last_deletions = 0
         self.last_splits = 0
     
-        self.programs = self.init_programs()
+        self.programs = self.init_programs(self.num_programs_init)
         
         
-    def init_programs(self):
+    def init_programs(self, num_programs_init):
         programs = []
         
         #self.SPLIT = ord('_'); self.values_init = [v for v in self.values if v != self.SPLIT]
-        for _ in range(self.num_programs_init):
+        for _ in range(num_programs_init):
             program = []
             for _ in range(self.prog_size):
                 program.append(random.choice(self.values))

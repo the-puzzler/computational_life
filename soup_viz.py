@@ -5,10 +5,10 @@ import random
 import statistics
 import matplotlib.pyplot as plt
 
-from explore import PrimordialSoup
+from soup import PrimordialSoup
 
 # Defined opcodes and labels used across figures
-OP_LABELS = ["<", ">", "{", "}", "-", "+", ".", ",", "[", "]", "_", "|", ":", "/", "\\", "^"]
+OP_LABELS = ["<", ">", "{", "}", "-", "+", ".", ",", "[", "]", "_", "|", "\\"]
 OP_CODES = [ord(c) for c in "<>{}-+.,[]_|:/\\^"]
 CODE_IDX = {c: i for i, c in enumerate(OP_CODES)}
 
@@ -23,11 +23,14 @@ def compress_ratio(data_bytes: bytes) -> float:
 
 
 #%% Initialize soup (adjust sizes as desired)
-num_programs = 1000
-budget = 1000
+num_programs = 5000
+budget = 8000
 pop_prop = 1.0
-soup = PrimordialSoup(num_programs, budget=budget,program_limit=128, program_cap=10000,mut_rate=0.024, pop_prop=pop_prop, prog_size=64)
+soup = PrimordialSoup(num_programs, budget=budget,program_limit=128, program_cap=10_000,mut_rate=0.024, pop_prop=pop_prop, prog_size=64)
 
+
+#trying something here:
+cull_size = 100
 
 #%% Live visualization loop
 plt.ion()
@@ -160,6 +163,11 @@ try:
         ax_ops.relim(); ax_ops.autoscale_view()
         fig_ops.canvas.draw()
         fig_ops.canvas.flush_events()
+
+
+        soup.programs = soup.programs[cull_size:] + soup.init_programs(cull_size)
+
+
 
         t += 1
 except KeyboardInterrupt:
