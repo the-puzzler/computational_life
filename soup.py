@@ -1,7 +1,14 @@
 import random
+from concurrent.futures import ProcessPoolExecutor
+import os
 
 from BFFVM import VM
 
+def _run_one(args):
+    prog, budget, program_limit = args
+    vm = VM()
+    new_prog, spawned = vm.run_program(prog, budget=budget, program_limit=program_limit)
+    return new_prog, spawned, vm.cnt_insert, vm.cnt_delete, vm.cnt_split
 
 
 class PrimordialSoup():
@@ -22,6 +29,8 @@ class PrimordialSoup():
         self.last_splits = 0
     
         self.programs = self.init_programs(self.num_programs_init)
+        self.pool = ProcessPoolExecutor(max_workers=os.cpu_count())
+        print('cpu count: ',os.cpu_count )
         
         
     def init_programs(self, num_programs_init):
@@ -49,25 +58,31 @@ class PrimordialSoup():
         for _ in range(steps):
             chosen = self.sample_programs()
             ins = 0; dele = 0; spl = 0
-            for i in chosen:
-                prog = self.programs[i]
-                new_prog, spawned = self.vm.run_program(prog, budget=self.budget, program_limit=self.program_limit)
-                ins += self.vm.cnt_insert; dele += self.vm.cnt_delete; spl += self.vm.cnt_split
-                self.programs[i] = new_prog
-                for s in spawned:
-                    if s: self.programs.append(s)
+            if chosen:
+                payload = [(self.programs[i], self.budget, self.program_limit) for i in chosen]
+
+                # use the persistent pool 
+                results = list(self.pool.map(_run_one, payload, chunksize=1000))
+
+                for (new_prog, spawned, ci, cd, cs), i in zip(results, chosen):
+                    self.programs[i] = new_prog
+                    ins += ci; dele += cd; spl += cs
+                    for s in spawned:
+                        if s: self.programs.append(s)
+
             mr = self.mut_rate
             vals = self.values
             for program in self.programs:
                 for k in range(len(program)):
                     if random.random() < mr:
                         program[k] = random.choice(vals)
-                        
+
             if len(self.programs) > self.program_cap:
                 self.programs = self.programs[- self.program_cap :]
             self.last_inserts = ins
             self.last_deletions = dele
             self.last_splits = spl
+
                 
                 
                 
