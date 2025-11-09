@@ -14,7 +14,7 @@ head1 is write head
 , tape[head0] = tape[head1]
 [ if (tape[head0] == 0): jump forwards to matching ] command.
 ] if (tape[head0] != 0): jump backwards to matching [ command.
-_ split at head1 (left kept, right spawned)
+_ split at instruciton pointer (left kept, right spawned)
 | insert value at head1 from head0 (shift right)
 \\ delete at head1 (slide left)
 
@@ -50,7 +50,7 @@ class VM:
             ord(','): self.op_copy_h1_to_h0,
             ord('['): self.op_jump_fwd_if_zero,
             ord(']'): self.op_jump_back_if_nonzero,
-            ord('_'): self.op_split_at_h1,
+            ord('_'): self.op_split,
             ord('|'): self.op_insert_h0_at_h1,
     
            
@@ -112,17 +112,16 @@ class VM:
             self.ip = j
             self.jumped = True
 
-    def op_split_at_h1(self):
-        pos = self.h1
-        if 0 <= pos <= len(self.tape) : #and pos > self.ip
-            right = self.tape[pos:]
-            left = self.tape[:pos]
-            self.tape = left
+    def op_split(self):
+        pos = self.ip 
+
+        right = self.tape[pos + 1:] # + 1 means split is part of the old program.
+        left = self.tape[:pos + 1]
+        self.tape = left
+        if right: # if the program outputs nothing, then nothing enters spawn pool
             self.spawned.append(right)
             self.cnt_split += 1
-            if self.h0 >= len(self.tape): self.h0 = max(len(self.tape) - 1, 0)
-            if self.h1 > len(self.tape): self.h1 = len(self.tape)
-            self.running = False
+        self.running = False
 
     
 
