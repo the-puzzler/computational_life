@@ -30,7 +30,7 @@ soup = PrimordialSoup(num_programs, budget=budget,program_limit=128, program_cap
 
 
 #trying something here:
-cull_size = 100
+cull_size = 50
 
 #%% Live visualization loop
 plt.ion()
@@ -164,8 +164,8 @@ try:
         fig_ops.canvas.draw()
         fig_ops.canvas.flush_events()
 
-
-        soup.programs = soup.programs[cull_size:] + soup.init_programs(cull_size)
+        if cull_size != 0:
+            soup.programs = soup.programs[cull_size:] + soup.init_programs(cull_size)
 
 
 
