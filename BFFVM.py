@@ -19,6 +19,7 @@ _ split at head1 (left kept, right spawned)
 : insert value at head0 from head1 (shift right)
 \\ delete at head1 (slide left)
 / delete at head0 (slide left)
+^ split at head0 (left kept, right spawned)
 
 """
 
@@ -31,9 +32,13 @@ class VM:
         self.h1 = 0
         self.seam = 0
         self.spawned = []
+        self.cnt_insert = 0
+        self.cnt_delete = 0
+        self.cnt_split = 0
+        
 
         # ops & dispatch
-        self.OPS = "<>{}-+.,[]_|:/\\"
+        self.OPS = "<>{}-+.,[]_|:/\\^"
         self.OPCODES = {ord(c): c for c in self.OPS}
         self.dispatch = {
             ord('<'): self.op_left_h0,
@@ -51,15 +56,21 @@ class VM:
             ord(':'): self.op_insert_h1_at_h0,
             ord('/') : self.op_delete_at_h0,
             ord('\\'): self.op_delete_at_h1,
+            ord('^'): self.op_split_at_h0,
         }
         
-    def run_program(self, program, budget=None): #program is a list of ints
+    def run_program(self, program, budget=None, program_limit=516): #program is a list of ints
         self.tape = program
         self.ip = 0
         self.h0 = 0
         self.h1 = 0
         self.running = True
         self.spawned = []
+        self.cnt_insert = 0
+        self.cnt_delete = 0
+        self.cnt_split = 0
+        self.program_limit = program_limit
+        
         steps = 0
 
 
@@ -104,35 +115,54 @@ class VM:
 
     def op_split_at_h1(self):
         pos = self.h1
-        if 0 <= pos <= len(self.tape):
+        if 0 <= pos <= len(self.tape) and pos > self.ip:
             right = self.tape[pos:]
             left = self.tape[:pos]
             self.tape = left
             self.spawned.append(right)
+            self.cnt_split += 1
+            if self.h0 >= len(self.tape): self.h0 = max(len(self.tape) - 1, 0)
+            if self.h1 > len(self.tape): self.h1 = len(self.tape)
+            self.running = False
+
+    def op_split_at_h0(self):
+        pos = self.h0
+        if 0 <= pos <= len(self.tape) and pos > self.ip:
+            right = self.tape[pos:]
+            left = self.tape[:pos]
+            self.tape = left
+            self.spawned.append(right)
+            self.cnt_split += 1
             if self.h0 >= len(self.tape): self.h0 = max(len(self.tape) - 1, 0)
             if self.h1 > len(self.tape): self.h1 = len(self.tape)
             self.running = False
 
     def op_insert_h0_at_h1(self):
         pos = max(self.h1, 0)
-        if pos > len(self.tape): self.tape.extend([0] * (pos - len(self.tape)))
-        val = self.tape[self.h0] if 0 <= self.h0 < len(self.tape) else 0
-        self.tape.insert(pos, val)
-        if pos < self.seam: self.seam += 1
-        if self.ip >= pos: self.ip += 1
+        if (len(self.tape) < self.program_limit):
+            if pos > len(self.tape): 
+                self.tape.extend([0] * (pos - len(self.tape)))
+            val = self.tape[self.h0] if 0 <= self.h0 < len(self.tape) else 0
+            self.tape.insert(pos, val)
+            self.cnt_insert += 1
+            if pos < self.seam: self.seam += 1
+            if self.ip >= pos: self.ip += 1
 
     def op_insert_h1_at_h0(self):
         pos = max(self.h0, 0)
-        if pos > len(self.tape): self.tape.extend([0] * (pos - len(self.tape)))
-        val = self.tape[self.h1] if 0 <= self.h1 < len(self.tape) else 0
-        self.tape.insert(pos, val)
-        if pos < self.seam: self.seam += 1
-        if self.ip >= pos: self.ip += 1
+        if (len(self.tape) < self.program_limit):
+            if pos > len(self.tape): self.tape.extend([0] * (pos - len(self.tape)))
+            val = self.tape[self.h1] if 0 <= self.h1 < len(self.tape) else 0
+            self.tape.insert(pos, val)
+            self.cnt_insert += 1
+            if pos < self.seam: self.seam += 1
+            if self.ip >= pos: self.ip += 1
 
     def op_delete_at_h0(self):
         pos = self.h0
         if 0 <= pos < len(self.tape):
             del self.tape[pos]
+            self.cnt_delete += 1
             if pos < self.seam: self.seam = max(0, self.seam - 1)
             if self.ip >= pos: self.ip -= 1
             if self.h0 >= len(self.tape): self.h0 = max(len(self.tape) - 1, 0)
@@ -143,6 +173,7 @@ class VM:
         pos = self.h1
         if 0 <= pos < len(self.tape):
             del self.tape[pos]
+            self.cnt_delete += 1
             if pos < self.seam: self.seam = max(0, self.seam - 1)
             if self.ip >= pos: self.ip -= 1
             if self.h0 >= len(self.tape): self.h0 = max(len(self.tape) - 1, 0)

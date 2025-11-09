@@ -5,16 +5,21 @@ from BFFVM import VM
 
 
 class PrimordialSoup():
-    def __init__(self, num_programs_init, budget = 1000, 
+    def __init__(self, num_programs_init, budget = 1000,
+                 program_limit = 516, 
                  pop_prop = 0.1, mut_rate=0.00, prog_size=64, program_cap = 10_000):
         self.num_programs_init = num_programs_init
         self.vm = VM()
         self.budget = budget
+        self.program_limit = program_limit
         self.pop_prop = pop_prop
         self.values = [i for i in range(256)]
         self.mut_rate = mut_rate
         self.prog_size = prog_size
         self.program_cap = program_cap
+        self.last_inserts = 0
+        self.last_deletions = 0
+        self.last_splits = 0
     
         self.programs = self.init_programs()
         
@@ -43,9 +48,11 @@ class PrimordialSoup():
     def run_soup(self, steps):
         for _ in range(steps):
             chosen = self.sample_programs()
+            ins = 0; dele = 0; spl = 0
             for i in chosen:
                 prog = self.programs[i]
-                new_prog, spawned = self.vm.run_program(prog, budget=self.budget)
+                new_prog, spawned = self.vm.run_program(prog, budget=self.budget, program_limit=self.program_limit)
+                ins += self.vm.cnt_insert; dele += self.vm.cnt_delete; spl += self.vm.cnt_split
                 self.programs[i] = new_prog
                 for s in spawned:
                     if s: self.programs.append(s)
@@ -58,6 +65,9 @@ class PrimordialSoup():
                         
             if len(self.programs) > self.program_cap:
                 self.programs = self.programs[- self.program_cap :]
+            self.last_inserts = ins
+            self.last_deletions = dele
+            self.last_splits = spl
                 
                 
                 
