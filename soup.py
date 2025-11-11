@@ -65,13 +65,15 @@ class PrimordialSoup():
                 results = list(self.pool.map(_run_one, payload, chunksize=1000))
 
                 for (new_prog, spawned, ci, cd, cs), i in zip(results, chosen):
-                    if not new_prog == []:
-                        self.programs[i] = new_prog
+                    self.programs[i] = new_prog if new_prog else None 
+                        
                     ins += ci; dele += cd; spl += cs
                     for s in spawned:
                         if s: 
                         
                             self.programs.append(s)
+                
+                self.programs = [p for p in self.programs if p]  # drops None and []
 
             mr = self.mut_rate
             vals = self.values
@@ -84,7 +86,9 @@ class PrimordialSoup():
                 self.programs = self.programs[- self.program_cap :]
                 
             # if len(self.programs) > self.program_cap:
-            #     self.programs = random.sample(self.programs, self.program_cap)
+            #     self.programs = random.sample(self.programs, 800)
+            
+            #self.programs = random.sample(self.programs, int(len(self.programs) * 0.95 ))
             
                 
                 
