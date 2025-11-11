@@ -82,6 +82,12 @@ class PrimordialSoup():
 
             if len(self.programs) > self.program_cap:
                 self.programs = self.programs[- self.program_cap :]
+                
+            # if len(self.programs) > self.program_cap:
+            #     self.programs = random.sample(self.programs, self.program_cap)
+            
+                
+                
             self.last_inserts = ins
             self.last_deletions = dele
             self.last_splits = spl

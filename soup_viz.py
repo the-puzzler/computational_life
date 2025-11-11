@@ -185,8 +185,8 @@ def main():
 
                 #print(new.most_common(10))
                     
-                for program in new:
-                    print(new[program], ' Program:', program)
+                for program, count in new.most_common():
+                    print(count, ' Program:', program)
                 
                     
     except KeyboardInterrupt:

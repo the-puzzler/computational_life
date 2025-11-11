@@ -113,7 +113,7 @@ class VM:
             self.jumped = True
 
     def op_split(self):
-        pos = len(self.tape)//2
+        pos = self.ip
         
         right = self.tape[pos + 1:] # + 1 means split is part of the old program.
         left = self.tape[:pos + 1]
@@ -143,10 +143,7 @@ class VM:
         if len(self.tape) < self.program_limit:
             self.tape.insert(pos, val)
             self.cnt_insert += 1
-            # if pos <= self.seam:
-            #     self.seam += 1
-            # if self.ip >= pos:
-            #     self.ip += 1
+            
 
 
     def op_delete_at_h1(self):
