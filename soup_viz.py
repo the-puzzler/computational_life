@@ -4,6 +4,7 @@ import zlib
 import random
 import statistics
 import matplotlib.pyplot as plt
+from collections import Counter
 
 from soup import PrimordialSoup
 
@@ -24,13 +25,13 @@ def compress_ratio(data_bytes: bytes) -> float:
 
 def main():
     #%% Initialize soup (adjust sizes as desired)
-    num_programs = 5000
+    num_programs = 1000
     budget = 8000
     pop_prop = 1.0
-    soup = PrimordialSoup(num_programs, budget=budget,program_limit=128, program_cap=10_000,mut_rate=0.024, pop_prop=pop_prop, prog_size=64)
+    soup = PrimordialSoup(num_programs, budget=budget,program_limit=128, program_cap=1_000,mut_rate=0.00, pop_prop=pop_prop, prog_size=64)
 
     #trying something here:
-    cull_size = 50
+    cull_size = 0
 
     #%% Live visualization loop
     plt.ion()
@@ -165,9 +166,29 @@ def main():
             fig_ops.canvas.flush_events()
 
             if cull_size != 0:
-                soup.programs = soup.programs[cull_size:] + soup.init_programs(cull_size)
-
+                soup.programs = soup.programs[cull_size:] # + soup.init_programs(cull_size)
+         
             t += 1
+            
+            if t % 1 == 0:
+ 
+                new = Counter()
+                print('-'*32)
+                print(t)
+                print('-'*32)
+                
+                for program in soup.programs:
+                    labels = set(OP_LABELS)  
+                    key = " ".join(chr(i) if chr(i) in labels else str(i) for i in program)
+                    new[key] += 1
+
+
+                #print(new.most_common(10))
+                    
+                for program in new:
+                    print(new[program], ' Program:', program)
+                
+                    
     except KeyboardInterrupt:
         pass
     finally:

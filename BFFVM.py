@@ -113,14 +113,20 @@ class VM:
             self.jumped = True
 
     def op_split(self):
-        pos = self.ip 
-
+        pos = len(self.tape)//2
+        
         right = self.tape[pos + 1:] # + 1 means split is part of the old program.
         left = self.tape[:pos + 1]
         self.tape = left
-        if right: # if the program outputs nothing, then nothing enters spawn pool
-            self.spawned.append(right)
+        if len(right) >= 1 and (right[0] != ord('_')):
+            self.spawned.append(right) # if the program outputs nothing, then nothing enters spawn pool
+            
+    
+            if left[0] == ord('_'):
+                self.tape = []
+            
             self.cnt_split += 1
+            
         self.running = False
 
     
@@ -137,10 +143,10 @@ class VM:
         if len(self.tape) < self.program_limit:
             self.tape.insert(pos, val)
             self.cnt_insert += 1
-            if pos <= self.seam:
-                self.seam += 1
-            if self.ip >= pos:
-                self.ip += 1
+            # if pos <= self.seam:
+            #     self.seam += 1
+            # if self.ip >= pos:
+            #     self.ip += 1
 
 
     def op_delete_at_h1(self):
